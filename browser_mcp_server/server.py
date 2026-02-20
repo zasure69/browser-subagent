@@ -56,6 +56,7 @@ browser = BrowserManager(headless=True)
 async def browser_navigate(url: str, wait_until: str = "domcontentloaded") -> str:
     """
     Navigate to a URL and return the page title and text content.
+    Automatically retries with relaxed loading strategies if the first attempt fails.
     
     Args:
         url: The URL to navigate to (https:// is added if no scheme)
@@ -67,14 +68,32 @@ async def browser_navigate(url: str, wait_until: str = "domcontentloaded") -> st
     url = validate_url(url)
     page = await browser.ensure_browser()
 
-    try:
-        await page.goto(url, wait_until=wait_until, timeout=30000)
-    except Exception as e:
-        return f"Navigation error: {e}"
+    # Retry with progressively relaxed wait strategies
+    strategies = [wait_until, "commit", "commit"]
+    timeouts = [30000, 20000, 15000]
+    last_error = None
 
-    title = await page.title()
-    content = await page.evaluate("() => document.body ? document.body.innerText : ''")
-    content = clean_text(content)
+    for i, (strategy, timeout) in enumerate(zip(strategies, timeouts)):
+        try:
+            await page.goto(url, wait_until=strategy, timeout=timeout)
+            last_error = None
+            break
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Navigate attempt {i+1} failed ({strategy}, {timeout}ms): {e}")
+            if i < len(strategies) - 1:
+                # Small delay before retry
+                await asyncio.sleep(1)
+
+    # Try to extract content even if navigation had errors
+    try:
+        title = await page.title()
+        content = await page.evaluate("() => document.body ? document.body.innerText : ''")
+        content = clean_text(content)
+    except Exception:
+        if last_error:
+            return f"Navigation failed after {len(strategies)} attempts: {last_error}"
+        return "Navigation failed: could not extract page content"
 
     # Update tab info
     for tab in browser._tabs:
@@ -83,7 +102,11 @@ async def browser_navigate(url: str, wait_until: str = "domcontentloaded") -> st
             tab.url = page.url
             break
 
-    return f"**Page:** {title}\n**URL:** {page.url}\n\n{content}"
+    warning = ""
+    if last_error:
+        warning = f"\n⚠️ *Page loaded with warnings: {last_error}*\n"
+
+    return f"**Page:** {title}\n**URL:** {page.url}\n{warning}\n{content}"
 
 
 @mcp.tool()
