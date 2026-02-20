@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "browser-subagent": {
+      "command": "python3",
+      "args": ["-m", "browser_mcp_server"],
+      "cwd": "/path/to/tool-bugbounty-antigravity",
+      "timeout": 30000,
+      "env": {
+        "PYTHONPATH": "/path/to/tool-bugbounty-antigravity"
+      }
+    }
+  }
+}
