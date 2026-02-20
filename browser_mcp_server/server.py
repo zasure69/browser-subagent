@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import sys
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -33,7 +34,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger("browser-mcp")
 
-# ── MCP Server & Browser ──────────────────────────────────────
+# ── Browser Instance ───────────────────────────────────────────
+browser = BrowserManager(headless=True)
+
+
+# ── Lifespan: Pre-launch browser on startup ───────────────────
+@asynccontextmanager
+async def server_lifespan(server):
+    """Pre-launch browser when MCP server starts, shutdown on exit."""
+    logger.info("Pre-launching browser (warm-up)...")
+    try:
+        await browser.ensure_browser()
+        logger.info("Browser ready — MCP server is live")
+    except Exception as e:
+        logger.error(f"Browser pre-launch failed: {e}")
+    yield
+    logger.info("Shutting down browser...")
+    await browser.shutdown()
+
+
+# ── MCP Server ─────────────────────────────────────────────────
 mcp = FastMCP(
     "Browser Subagent",
     instructions=(
@@ -42,9 +62,8 @@ mcp = FastMCP(
         "execute JavaScript, inspect network traffic, and more. "
         "Optimized for bug bounty reconnaissance and web security testing on Kali Linux."
     ),
+    lifespan=server_lifespan,
 )
-
-browser = BrowserManager(headless=True)
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -593,4 +612,5 @@ async def browser_set_cookie(
 def run():
     """Start the MCP server using stdio transport."""
     logger.info("Starting Browser Subagent MCP Server...")
+    logger.info("Browser will be pre-launched during startup for fast first response")
     mcp.run(transport="stdio")
