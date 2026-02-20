@@ -67,6 +67,8 @@ class BrowserManager:
                 '--disable-gpu',
                 '--disable-web-security',
                 '--allow-running-insecure-content',
+                '--disable-http2',  # Fix ERR_HTTP2_PROTOCOL_ERROR
+                '--disable-blink-features=AutomationControlled',  # Anti-bot detection
             ]
         )
         self._context = await self._browser.new_context(
