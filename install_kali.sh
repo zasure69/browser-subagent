@@ -23,7 +23,7 @@ echo -e "${NC}"
 
 # ── Step 1: System Dependencies ──────────────────────────────
 echo -e "${YELLOW}[1/5] Installing system dependencies for Chromium...${NC}"
-sudo apt-get update -qq
+sudo apt-get update -qq || echo -e "${YELLOW}  ⚠ apt-get update had warnings (non-critical, continuing...)${NC}"
 sudo apt-get install -y -qq \
     libnss3 \
     libnspr4 \
@@ -40,7 +40,7 @@ sudo apt-get install -y -qq \
     libgbm1 \
     libpango-1.0-0 \
     libcairo2 \
-    libasound2 \
+    libasound2t64 \
     libatspi2.0-0 \
     libwayland-client0 \
     xvfb \

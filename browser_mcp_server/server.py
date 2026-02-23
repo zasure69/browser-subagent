@@ -34,6 +34,34 @@ logging.basicConfig(
 )
 logger = logging.getLogger("browser-mcp")
 
+# ── Response Pagination ────────────────────────────────────────
+# Prevents tool responses from overflowing Gemini CLI's context window.
+# Content is split into pages, and tools accept offset/max_chars to paginate.
+DEFAULT_MAX_CHARS = 15000
+
+def paginate_response(text: str, offset: int = 0, max_chars: int = DEFAULT_MAX_CHARS) -> str:
+    """Return a page of text starting at offset, with navigation info."""
+    if not text:
+        return text
+    
+    total = len(text)
+    
+    if total <= max_chars and offset == 0:
+        return text
+    
+    chunk = text[offset:offset + max_chars]
+    end = offset + len(chunk)
+    remaining = total - end
+    
+    header = f"[Showing chars {offset+1}-{end} of {total:,} total]\n\n"
+    
+    if remaining > 0:
+        footer = f"\n\n... [{remaining:,} chars remaining — call this tool again with offset={end} to continue reading]"
+    else:
+        footer = "\n\n[END — all content has been shown]"
+    
+    return header + chunk + footer
+
 # ── Browser Instance ───────────────────────────────────────────
 browser = BrowserManager(headless=True)
 
@@ -125,7 +153,8 @@ async def browser_navigate(url: str, wait_until: str = "domcontentloaded") -> st
     if last_error:
         warning = f"\n⚠️ *Page loaded with warnings: {last_error}*\n"
 
-    return f"**Page:** {title}\n**URL:** {page.url}\n{warning}\n{content}"
+    result = f"**Page:** {title}\n**URL:** {page.url}\n{warning}\n{content}"
+    return paginate_response(result)
 
 
 @mcp.tool()
@@ -133,7 +162,7 @@ async def browser_back() -> str:
     """Navigate back in browser history."""
     page = await browser.ensure_browser()
     try:
-        await page.go_back(timeout=10000)
+        await page.go_back(timeout=50000)
         title = await page.title()
         return f"Navigated back → {title} ({page.url})"
     except Exception as e:
@@ -145,7 +174,7 @@ async def browser_forward() -> str:
     """Navigate forward in browser history."""
     page = await browser.ensure_browser()
     try:
-        await page.go_forward(timeout=10000)
+        await page.go_forward(timeout=50000)
         title = await page.title()
         return f"Navigated forward → {title} ({page.url})"
     except Exception as e:
@@ -169,8 +198,8 @@ async def browser_click(selector: str) -> str:
     page = await browser.ensure_browser()
 
     try:
-        await page.click(selector, timeout=10000)
-        await page.wait_for_load_state("domcontentloaded", timeout=5000)
+        await page.click(selector, timeout=50000)
+        await page.wait_for_load_state("domcontentloaded", timeout=50000)
         title = await page.title()
         return f"Clicked '{selector}' → Page: {title} ({page.url})"
     except Exception as e:
@@ -190,7 +219,7 @@ async def browser_fill(selector: str, text: str) -> str:
     page = await browser.ensure_browser()
 
     try:
-        await page.fill(selector, text, timeout=10000)
+        await page.fill(selector, text, timeout=50000)
         return f"Filled '{selector}' with '{text}'"
     except Exception as e:
         return f"Fill failed on '{selector}': {e}"
@@ -209,7 +238,7 @@ async def browser_select(selector: str, value: str) -> str:
     page = await browser.ensure_browser()
 
     try:
-        await page.select_option(selector, value, timeout=10000)
+        await page.select_option(selector, value, timeout=50000)
         return f"Selected '{value}' in '{selector}'"
     except Exception as e:
         return f"Select failed on '{selector}': {e}"
@@ -230,7 +259,7 @@ async def browser_type(selector: str, text: str, delay: int = 50) -> str:
     page = await browser.ensure_browser()
 
     try:
-        await page.type(selector, text, delay=delay, timeout=10000)
+        await page.type(selector, text, delay=delay, timeout=50000)
         return f"Typed '{text}' into '{selector}'"
     except Exception as e:
         return f"Type failed on '{selector}': {e}"
@@ -264,20 +293,20 @@ async def browser_hover(selector: str) -> str:
     page = await browser.ensure_browser()
 
     try:
-        await page.hover(selector, timeout=10000)
+        await page.hover(selector, timeout=50000)
         return f"Hovering over '{selector}'"
     except Exception as e:
         return f"Hover failed on '{selector}': {e}"
 
 
 @mcp.tool()
-async def browser_wait(selector: str, timeout: int = 10000, state: str = "visible") -> str:
+async def browser_wait(selector: str, timeout: int = 50000, state: str = "visible") -> str:
     """
     Wait for an element to appear on the page.
     
     Args:
         selector: CSS selector to wait for
-        timeout: Max wait time in milliseconds (default 10000)
+        timeout: Max wait time in milliseconds (default 50000)
         state: Element state to wait for — 'visible', 'hidden', 'attached', 'detached'
     """
     selector = safe_selector(selector)
@@ -296,12 +325,15 @@ async def browser_wait(selector: str, timeout: int = 10000, state: str = "visibl
 
 
 @mcp.tool()
-async def browser_get_text(selector: Optional[str] = None) -> str:
+async def browser_get_text(selector: Optional[str] = None, offset: int = 0, max_chars: int = DEFAULT_MAX_CHARS) -> str:
     """
     Get visible text content from the page or a specific element.
+    Supports pagination for large pages.
     
     Args:
         selector: Optional CSS selector. If omitted, returns the full page text.
+        offset: Character offset to start from (for pagination). Default 0.
+        max_chars: Max characters to return per call. Default 15000.
     """
     page = await browser.ensure_browser()
 
@@ -311,19 +343,22 @@ async def browser_get_text(selector: Optional[str] = None) -> str:
             text = await page.eval_on_selector(selector, "el => el.innerText")
         else:
             text = await page.evaluate("() => document.body ? document.body.innerText : ''")
-        return clean_text(text)
+        return paginate_response(clean_text(text), offset, max_chars)
     except Exception as e:
         return f"Text extraction failed: {e}"
 
 
 @mcp.tool()
-async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -> str:
+async def browser_get_html(selector: Optional[str] = None, outer: bool = True, offset: int = 0, max_chars: int = DEFAULT_MAX_CHARS) -> str:
     """
     Get HTML content of the page or a specific element.
+    Supports pagination for large pages.
     
     Args:
         selector: Optional CSS selector. If omitted, returns full page HTML.
         outer: If True, includes the element's own tag (outerHTML). If False, only children (innerHTML).
+        offset: Character offset to start from (for pagination). Default 0.
+        max_chars: Max characters to return per call. Default 15000.
     """
     page = await browser.ensure_browser()
 
@@ -334,7 +369,7 @@ async def browser_get_html(selector: Optional[str] = None, outer: bool = True) -
             html = await page.eval_on_selector(selector, f"el => el.{prop}")
         else:
             html = await page.content()
-        return truncate_html(html)
+        return paginate_response(truncate_html(html), offset, max_chars)
     except Exception as e:
         return f"HTML extraction failed: {e}"
 
@@ -352,7 +387,7 @@ async def browser_get_attribute(selector: str, attribute: str) -> str:
     page = await browser.ensure_browser()
 
     try:
-        value = await page.get_attribute(selector, attribute, timeout=5000)
+        value = await page.get_attribute(selector, attribute, timeout=50000)
         return f"{attribute}=\"{value}\"" if value is not None else f"Attribute '{attribute}' not found on '{selector}'"
     except Exception as e:
         return f"Get attribute failed: {e}"
@@ -373,7 +408,7 @@ async def browser_links() -> str:
                 href: a.href
             })).filter(l => l.href && !l.href.startsWith('javascript:'));
         }""")
-        return format_links(links)
+        return paginate_response(format_links(links))
     except Exception as e:
         return f"Link extraction failed: {e}"
 
@@ -435,8 +470,8 @@ async def browser_evaluate(script: str) -> str:
     try:
         result = await page.evaluate(script)
         if isinstance(result, (dict, list)):
-            return json.dumps(result, indent=2, ensure_ascii=False)
-        return str(result) if result is not None else "undefined"
+            return paginate_response(json.dumps(result, indent=2, ensure_ascii=False))
+        return paginate_response(str(result) if result is not None else "undefined")
     except Exception as e:
         return f"JavaScript evaluation error: {e}"
 
@@ -515,7 +550,7 @@ async def browser_network_log(resource_type: Optional[str] = None, clear: bool =
     result = format_network_log(entries)
     if clear:
         browser.clear_network_log()
-    return result
+    return paginate_response(result)
 
 
 @mcp.tool()
@@ -540,7 +575,7 @@ async def browser_console_log(log_type: Optional[str] = None, clear: bool = Fals
     result = f"Console messages ({len(entries)} total, showing last {min(len(entries), 100)}):\n" + '\n'.join(lines)
     if clear:
         browser.clear_console_log()
-    return result
+    return paginate_response(result)
 
 
 @mcp.tool()

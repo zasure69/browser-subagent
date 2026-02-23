@@ -1,0 +1,125 @@
+/* ═══════════════════════════════════════════════
+   SecureNotes Pro — Base Styles
+   ═══════════════════════════════════════════════ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+a { color: #818cf8; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Navbar ── */
+.navbar {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #475569;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.navbar .logo {
+    font-size: 22px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #38bdf8, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.navbar .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.navbar .user-info span {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+}
+
+/* ── Layout ── */
+.container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+/* ── Section Cards ── */
+.search-section,
+.notes-section,
+.profile-widget,
+.activity-section {
+    background: #1e293b;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid #334155;
+    transition: box-shadow 0.2s;
+}
+
+.search-section:hover,
+.notes-section:hover,
+.profile-widget:hover,
+.activity-section:hover {
+    box-shadow: 0 0 0 1px #475569;
+}
+
+.search-section h2,
+.notes-section h2,
+.profile-widget h2,
+.activity-section h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: #cbd5e1;
+}
+
+/* ── Footer ── */
+.footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: #475569;
+    border-top: 1px solid #1e293b;
+}
+
+/* ── Debug Console ── */
+#debug-console {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #000;
+    color: #22c55e;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    padding: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 999;
+    border-top: 2px solid #22c55e;
+}

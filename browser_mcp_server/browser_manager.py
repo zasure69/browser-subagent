@@ -153,7 +153,7 @@ class BrowserManager:
         self._active_tab_id = tab_id
 
         if url:
-            await page.goto(url, wait_until='domcontentloaded', timeout=30000)
+            await page.goto(url, wait_until='domcontentloaded', timeout=50000)
             tab.title = await page.title()
             tab.url = page.url
 

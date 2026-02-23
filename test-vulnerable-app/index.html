@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureNotes Pro — Your Trusted Notes App</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">🔒 SecureNotes Pro</div>
+        <div class="user-info">
+            <span id="user-greeting">Welcome back</span>
+            <div class="avatar" id="user-avatar">?</div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Search Section -->
+        <div class="search-section">
+            <h2>🔍 Search Notes</h2>
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="Search your notes...">
+                <button onclick="searchNotes()">Search</button>
+            </div>
+            <div id="search-results">
+                <div class="result-label">Search Results</div>
+                <div id="search-results-content"></div>
+            </div>
+        </div>
+
+        <!-- Profile Widget -->
+        <div class="profile-widget">
+            <h2>👤 Profile Settings</h2>
+            <div id="profile-content">Loading profile...</div>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="notes-section">
+            <div class="notes-header">
+                <h2>📝 My Notes</h2>
+                <button class="add-note-btn" onclick="toggleNoteForm()">+ New Note</button>
+            </div>
+
+            <div class="note-form" id="note-form">
+                <input type="text" id="note-title" placeholder="Note title...">
+                <textarea id="note-content" placeholder="Write your note here... (Markdown supported!)"></textarea>
+                <div class="form-actions">
+                    <button class="btn-cancel" onclick="toggleNoteForm()">Cancel</button>
+                    <button class="btn-save" onclick="saveNote()">Save Note</button>
+                </div>
+            </div>
+
+            <div class="notes-list" id="notes-list"></div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="activity-section">
+            <h2>📊 Recent Activity</h2>
+            <div id="activity-feed">Loading activity...</div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="modal-overlay" id="share-modal">
+        <div class="modal">
+            <h2>Share Note</h2>
+            <p style="color:#94a3b8; margin-bottom:12px; font-size:14px;">
+                Enter recipient's profile URL to share:
+            </p>
+            <input type="text" id="share-url" placeholder="https://securenotes.pro/user/...">
+            <div class="share-preview" id="share-preview">Preview will appear here...</div>
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button class="btn-cancel" onclick="closeShareModal()">Cancel</button>
+                <button class="btn-save" onclick="processShare()">Share</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Debug Console -->
+    <div id="debug-console"></div>
+
+    <!-- JavaScript Files -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/sharing.js"></script>
+    <script src="js/activity.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
